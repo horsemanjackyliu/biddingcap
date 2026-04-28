@@ -55,7 +55,7 @@ async function embeding(params) {
                 }
             }
         },
-        { resourceGroup: 'default-grounding' },
+        { resourceGroup: 'default' },
         { destinationName: 'bid-aicore' }
     );
     const response = await embeddingClient.embed({
@@ -188,7 +188,7 @@ ${bidContext}
     const client = new OrchestrationClient({
         promptTemplating: {
             model: {
-                name: 'gpt-4o',
+                name: 'gpt-5',
                 params: { max_tokens: 16383, temperature: 0 }
             },
             prompt: {
@@ -196,7 +196,7 @@ ${bidContext}
             }
         }
     },
-        { resourceGroup: 'default-grounding' },
+        { resourceGroup: 'default' },
         { destinationName: 'bid-aicore' });
 
     const response = await client.chatCompletion();
