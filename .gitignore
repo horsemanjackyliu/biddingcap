@@ -1,0 +1,63 @@
+# CAP bidauction
+_out
+*.db
+*.sqlite
+connection.properties
+default-*.json
+.cdsrc-private.json
+gen/
+node_modules/
+target/
+.claude/
+.fiori-ai/
+.vscode/
+unpacked_cn/
+test/
+CLAUDE.md
+USERMANUAL.md
+Overview.md
+prd.md
+ProjectBiddingSolution_L1.drawio
+.cdsrc-private.json
+Javascript.capnb
+Shell.capnb
+CDS_repl.capnb
+.mcp.json
+
+
+
+# Web IDE, App Studio
+.che/
+
+
+
+
+
+# MTA
+*_mta_build_tmp
+*.mtar
+mta_archives/
+
+# Other
+.DS_Store
+*.orig
+*.log
+*.pptx
+.vscode/
+*.iml
+*.flattened-pom.xml
+*.capnb
+*.png
+*.capnb
+prd.md
+
+
+
+
+
+# IDEs
+# .vscode
+# .idea
+
+# @cap-js/cds-typer
+@cds-models

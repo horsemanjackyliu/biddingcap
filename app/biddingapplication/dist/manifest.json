@@ -1,0 +1,220 @@
+{
+	"_version": "1.83.0",
+	"sap.app": {
+		"id": "biddingapplication",
+		"type": "application",
+		"i18n": {
+			"bundleUrl": "i18n/i18n.properties",
+			"supportedLocales": [
+				""
+			]
+		},
+		"applicationVersion": {
+			"version": "0.0.1"
+		},
+		"title": "{{appTitle}}",
+		"description": "{{appDescription}}",
+		"resources": "resources.json",
+		"sourceTemplate": {
+			"id": "@sap/generator-fiori:lrop",
+			"version": "1.21.0",
+			"toolsId": "0d5e772b-f4ac-48f6-98da-b2a279e0116c"
+		},
+		"dataSources": {
+			"mainService": {
+				"uri": "/service/bidauction/",
+				"type": "OData",
+				"settings": {
+					"annotations": [],
+					"odataVersion": "4.01"
+				}
+			}
+		},
+		"crossNavigation": {
+			"inbounds": {
+				"bidui5app-display": {
+					"semanticObject": "bidui5app",
+					"action": "display",
+					"signature": {
+						"parameters": {},
+						"additionalParameters": "allowed"
+					}
+				}
+			}
+		}
+	},
+	"sap.ui": {
+		"technology": "UI5",
+		"icons": {
+			"icon": "",
+			"favIcon": "",
+			"phone": "",
+			"phone@2": "",
+			"tablet": "",
+			"tablet@2": ""
+		},
+		"deviceTypes": {
+			"desktop": true,
+			"tablet": true,
+			"phone": true
+		}
+	},
+	"sap.ui5": {
+		"flexEnabled": false,
+		"dependencies": {
+			"minUI5Version": "1.146.0",
+			"libs": {
+				"sap.m": {},
+				"sap.ui.core": {},
+				"sap.fe.templates": {}
+			}
+		},
+		"contentDensities": {
+			"compact": true,
+			"cozy": true
+		},
+		"models": {
+			"i18n": {
+				"type": "sap.ui.model.resource.ResourceModel",
+				"settings": {
+					"bundleName": "biddingapplication.i18n.i18n",
+					"supportedLocales": [
+						""
+					]
+				}
+			},
+			"": {
+				"dataSource": "mainService",
+				"preload": true,
+				"settings": {
+					"operationMode": "Server",
+					"autoExpandSelect": true,
+					"earlyRequests": true
+				}
+			},
+			"@i18n": {
+				"type": "sap.ui.model.resource.ResourceModel",
+				"uri": "i18n/i18n.properties",
+				"settings": {
+					"supportedLocales": [
+						""
+					]
+				}
+			}
+		},
+		"resources": {
+			"css": []
+		},
+		"routing": {
+			"config": {},
+			"routes": [
+				{
+					"pattern": ":?query:",
+					"name": "ProjectsList",
+					"target": "ProjectsList"
+				},
+				{
+					"pattern": "Projects({key}):?query:",
+					"name": "ProjectsObjectPage",
+					"target": "ProjectsObjectPage"
+				},
+				{
+					"pattern": "Projects({key})/attachments({key2}):?query:",
+					"name": "AttachmentsObjectPage",
+					"target": "AttachmentsObjectPage"
+				},
+				{
+					"name": "Projects_evaluationGuidancesObjectPage",
+					"pattern": "Projects({key})/evaluationGuidances({evaluationGuidancesKey}):?query:",
+					"target": "Projects_evaluationGuidancesObjectPage"
+				}
+			],
+			"targets": {
+				"ProjectsList": {
+					"type": "Component",
+					"id": "ProjectsList",
+					"name": "sap.fe.templates.ListReport",
+					"options": {
+						"settings": {
+							"contextPath": "/Projects",
+							"variantManagement": "Page",
+							"navigation": {
+								"Projects": {
+									"detail": {
+										"route": "ProjectsObjectPage"
+									}
+								}
+							},
+							"controlConfiguration": {
+								"@com.sap.vocabularies.UI.v1.LineItem": {
+									"tableSettings": {
+										"type": "ResponsiveTable"
+									}
+								}
+							}
+						}
+					}
+				},
+				"ProjectsObjectPage": {
+					"type": "Component",
+					"id": "ProjectsObjectPage",
+					"name": "sap.fe.templates.ObjectPage",
+					"options": {
+						"settings": {
+							"editableHeaderContent": false,
+							"contextPath": "/Projects",
+							"navigation": {
+								"attachments": {
+									"detail": {
+										"route": "AttachmentsObjectPage"
+									}
+								},
+								"evaluationGuidances": {
+									"detail": {
+										"route": "Projects_evaluationGuidancesObjectPage"
+									}
+								}
+							}
+						}
+					}
+				},
+				"AttachmentsObjectPage": {
+					"type": "Component",
+					"id": "AttachmentsObjectPage",
+					"name": "sap.fe.templates.ObjectPage",
+					"options": {
+						"settings": {
+							"editableHeaderContent": false,
+							"contextPath": "/Projects/attachments"
+						}
+					}
+				},
+				"Projects_evaluationGuidancesObjectPage": {
+					"type": "Component",
+					"id": "Projects_evaluationGuidancesObjectPage",
+					"name": "sap.fe.templates.ObjectPage",
+					"options": {
+						"settings": {
+							"navigation": {},
+							"contextPath": "/Projects/evaluationGuidances"
+						}
+					}
+				}
+			}
+		},
+		"flexBundle": false
+	},
+	"sap.fiori": {
+		"registrationIds": [],
+		"archeType": "transactional"
+	},
+	"sap.fe": {
+		"app": {
+			"enableLazyLoading": true
+		}
+	},
+	"sap.cloud": {
+		"public": true,
+		"service": "bidauction.service"
+	}
+}

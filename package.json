@@ -1,0 +1,98 @@
+{
+    "name": "bidauction",
+    "version": "1.0.0",
+    "description": "A simple CAP project.",
+    "dependencies": {
+        "@cap-js/attachments": "^3.5.0",
+        "@cap-js/hana": "^2",
+        "@sap-ai-sdk/core": "^2.4.0",
+        "@sap-ai-sdk/langchain": "^2.4.0",
+        "@sap-ai-sdk/orchestration": "^2.4.0",
+        "@sap-cloud-sdk/connectivity": "^4.2.0",
+        "@sap-cloud-sdk/http-client": "^4.2.0",
+        "@sap-cloud-sdk/resilience": "^4.2.0",
+        "@sap/cds": "^9",
+        "@sap/cds-common-content": "^3.1.0",
+        "@sap/xssec": "^4",
+        "express": "^4",
+        "langchain": "^0.1.19",
+        "pdf-lib": "^1.17.1",
+        "pdf-parse": "^1.1.1",
+        "pdfkit": "^0.14.0"
+    },
+    "devDependencies": {
+        "@cap-js/sqlite": "^2",
+        "@sap/cds-dk": "^9",
+        "cds-plugin-ui5": "^0.13.0",
+        "mbt": "^1.2.29",
+        "rimraf": "^5.0.5"
+    },
+    "scripts": {
+        "start": "cds-serve",
+        "watch-projects-management": "cds watch --open projectsmanagement/index.html?sap-ui-xx-viewCache=false --livereload false",
+        "watch-auctions-management": "cds watch --open auctionsmanagement/index.html?sap-ui-xx-viewCache=false --livereload false",
+        "watch-bidauctionprojectsui5": "cds watch --open bidauctionprojectsui5/index.html?sap-ui-xx-viewCache=false --livereload false",
+        "undeploy": "cf undeploy bidauction --delete-services --delete-service-keys --delete-service-brokers",
+        "build": "rimraf resources mta_archives && mbt build --mtar archive",
+        "deploy": "cf deploy mta_archives/archive.mtar --retries 1",
+        "watch-bidui5application": "cds watch --open bidui5application/index.html?sap-ui-xx-viewCache=false --livereload false",
+        "watch-bidui5": "cds watch --open bidui5/index.html?sap-ui-xx-viewCache=false --livereload false",
+        "watch-bidui5app": "cds watch --open bidui5app/index.html?sap-ui-xx-viewCache=false --livereload false",
+        "watch-biddingapplication": "cds watch --open biddingapplication/index.html?sap-ui-xx-viewCache=false --livereload false",
+        "watch-evaluationresults": "cds watch --open evaluationresults/index.html?sap-ui-xx-viewCache=false --livereload false"
+    },
+    "private": true,
+    "cds": {
+        "log": {
+            "levels": {
+                "attachments": "debug",
+                "db": "debug",
+                "srv": "debug"
+            }
+        },
+        "requires": {
+            "attachments": {
+                "scan": false,
+                "objectStore": {
+                    "kind": "shared"
+                }
+            },
+            "API_BUSINESS_PARTNER": {
+                "kind": "odata-v2",
+                "model": "srv/external/API_BUSINESS_PARTNER",
+                "credentials": {
+                    "destination": "S4_BP",
+                    "path": "/sap/opu/odata/sap/API_BUSINESS_PARTNER"
+                }
+            },
+            "[production]": {
+                "db": {
+                    "kind": "hana",
+                    "pool": {
+                        "max": 20,
+                        "acquireTimeoutMillis": 120000
+                    }
+                },
+                "auth": "xsuaa"
+            },
+            "[hybrid]": {
+                "db": "hana"
+            },
+            "destinations": true,
+            "html5-repo": true,
+            "workzone": true
+        }
+    },
+    "workspaces": [
+        "app/*"
+    ],
+    "sapux": [
+        "app/bidauctionprojectsui5",
+        "app/bidui5application",
+        "app/bidui5",
+        "app/bidui5",
+        "app/bidui5app",
+        "app/biddingapplication",
+        "app/evaluationresults"
+    ]
+}

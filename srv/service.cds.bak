@@ -1,0 +1,67 @@
+using {bidauction as db} from '../db/schema';
+using {API_BUSINESS_PARTNER as external} from './external/API_BUSINESS_PARTNER';
+
+service BidAuctionService @(path: '/service/bidauction') {
+
+            // Projects - Draft enabled
+    @odata.draft.enabled
+    entity Projects            as projection on db.Projects
+        actions {
+            @(
+                Common.SideEffects.TargetProperties: ['status'],
+                Common.IsActionCritical            : false
+            )
+            action openProject();
+            @(
+                Common.SideEffects.TargetProperties: ['status'],
+                Common.IsActionCritical            : false
+            )
+            action activateProject();
+            @(
+                Common.SideEffects.TargetProperties: ['status'],
+                Common.IsActionCritical            : false
+            )
+            action closeProject();
+            action evaluateProject();
+            action embedAttachments();
+        };
+
+    // Auctions - Not draft enabled (child of draft-enabled Projects)
+    entity Auctions            as projection on db.Auctions;
+
+    // EvaluationGuidances
+    entity EvaluationGuidances as projection on db.EvaluationGuidances;
+
+    // EvaluationResults - Read-only
+    @readonly
+    entity EvaluationResults   as projection on db.EvaluationResults;
+
+    // AttachmentEmbeddings
+    // entity AttachmentEmbeddings as projection on db.AttachmentEmbeddings;
+
+    // Project Types
+    entity ProjectTypes        as projection on db.ProjectTypes;
+
+    // Project Statuses
+    entity ProjectStatuses     as projection on db.ProjectStatuses;
+
+    // External Suppliers - Using A_BusinessPartner from external service
+    @readonly
+    entity Suppliers           as
+        projection on external.A_BusinessPartner {
+            key BusinessPartner          as ID,
+                BusinessPartnerFullName  as name,
+                BusinessPartnerIsBlocked as isBlocked
+        };
+}
+
+service AuctionService @(path: '/service/auction') {
+
+    // Auctions - Draft enabled
+    @odata.draft.enabled
+    entity Auctions as projection on db.Auctions
+        actions {
+            action submitBid();
+            action embedAttachments();
+        };
+}
