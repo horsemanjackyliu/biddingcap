@@ -27,8 +27,8 @@
     },
     "crossNavigation": {
       "inbounds": {
-        "bidui5app-display": {
-          "semanticObject": "bidui5app",
+        "biddingapplication-display": {
+          "semanticObject": "biddingapplication",
           "action": "display",
           "signature": {
             "parameters": {},
