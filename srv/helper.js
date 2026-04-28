@@ -189,7 +189,7 @@ ${bidContext}
         promptTemplating: {
             model: {
                 name: 'gpt-5',
-                params: { max_tokens: 16383, temperature: 0 }
+                params: { max_tokens: 16383 }
             },
             prompt: {
                 template: [{ role: 'user', content: prompt }]
