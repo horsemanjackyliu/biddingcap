@@ -158,15 +158,33 @@ async function callLLM(guidance, biddingDocChunks, bidDocChunks) {
     });
     const content = response.getContent();
 
+    console.log(content);
+
     // Repair common LLM output issue: missing comma between fullscore and confidence
     const repaired = content.replace(/"fullscore"\s*:\s*([^,}"]+)\s+"confidence"/, '"fullscore":$1,"confidence"');
 
     try {
         return JSON.parse(repaired);
     } catch {
-        // Fallback: extract JSON from response if wrapped in markdown
-        const match = repaired.match(/\{[\s\S]*\}/);
-        if (match) return JSON.parse(match[0]);
+        // Try extracting from markdown code block
+        const blockMatch = repaired.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+        if (blockMatch) {
+            try { return JSON.parse(blockMatch[1]); } catch { /* fall through */ }
+        }
+        // Fallback: extract numeric fields via regex and treat rest as explanation
+        // This handles unescaped quotes inside the explanation string
+        const score = repaired.match(/"score"\s*:\s*([0-9.]+)/)?.[1];
+        const fullscore = repaired.match(/"fullscore"\s*:\s*([0-9.]+)/)?.[1];
+        const confidence = repaired.match(/"confidence"\s*:\s*([0-9.]+)/)?.[1];
+        const explanationMatch = repaired.match(/"explanation"\s*:\s*"([\s\S]*?)(?:"\s*\}|$)/);
+        if (score !== undefined && confidence !== undefined) {
+            return {
+                score: parseFloat(score),
+                fullscore: fullscore !== undefined ? parseFloat(fullscore) : undefined,
+                confidence: parseFloat(confidence),
+                explanation: explanationMatch?.[1] ?? ''
+            };
+        }
         throw new Error(`LLM returned unparseable response: ${content}`);
     }
 }
