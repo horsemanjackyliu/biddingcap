@@ -158,11 +158,14 @@ async function callLLM(guidance, biddingDocChunks, bidDocChunks) {
     });
     const content = response.getContent();
 
+    // Repair common LLM output issue: missing comma between fullscore and confidence
+    const repaired = content.replace(/"fullscore"\s*:\s*([^,}"]+)\s+"confidence"/, '"fullscore":$1,"confidence"');
+
     try {
-        return JSON.parse(content);
+        return JSON.parse(repaired);
     } catch {
         // Fallback: extract JSON from response if wrapped in markdown
-        const match = content.match(/\{[\s\S]*\}/);
+        const match = repaired.match(/\{[\s\S]*\}/);
         if (match) return JSON.parse(match[0]);
         throw new Error(`LLM returned unparseable response: ${content}`);
     }
