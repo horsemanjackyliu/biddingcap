@@ -20,6 +20,8 @@ modules:
       instances: 1
     properties:
       AI_RESOURCE_GROUP: default
+      BID_PROMPT_TEMPLATE: bidevaluationtemplate
+      SIMILAR_TOPN: 10
     build-parameters:
       builder: npm
   - name: bidauction-db-deployer

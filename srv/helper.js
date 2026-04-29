@@ -4,6 +4,10 @@ const cds = require('@sap/cds');
 const { SELECT } = require('@sap/cds/lib/ql/cds-ql');
 const embeddingModel = 'text-embedding-3-large';
 const aiResourceGroup = process.env.AI_RESOURCE_GROUP || 'default';
+const bidPromptTemplate = process.env.BID_PROMPT_TEMPLATE || 'bidevaluationtemplate';
+const similarTopN = process.env.SIMILAR_TOPN || 10;
+
+
 
 
 // Helper method to convert embeddings to buffer for insertion
@@ -143,7 +147,7 @@ async function callLLM(guidance, biddingDocChunks, bidDocChunks) {
     const client = new OrchestrationClient(
         {
             scenario: 'foundation-models',
-            name: 'bidevaluationtemplate',
+            name: bidPromptTemplate,
             version: 'latest'
         },
         { resourceGroup: aiResourceGroup },
@@ -189,7 +193,7 @@ async function callLLM(guidance, biddingDocChunks, bidDocChunks) {
     }
 }
 
-async function findSimilarChunks(filter, queryVector, topN = 10) {
+async function findSimilarChunks(filter, queryVector, topN = similarTopN) {
     const db = await cds.connect.to('db');
     const embeddingStr = JSON.stringify(queryVector);
     const AttachmentEmbeddingsDb = cds.entities('bidauction').AttachmentEmbeddings;
