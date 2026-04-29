@@ -18,7 +18,7 @@ modules:
     parameters:
       buildpack: nodejs_buildpack
       instances: 1
-    env:
+    properties:
       AI_RESOURCE_GROUP: default
     build-parameters:
       builder: npm
