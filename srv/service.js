@@ -4,7 +4,8 @@ const e = require('express');
 
 // const { AzureOpenAiEmbeddingClient } = import('@sap-ai-sdk/langchain');
 
-const { getContent, callLLM } = require('./helper');
+const { getContent, callLLM, embeding, findSimilarChunks } = require('./helper');
+
 
 
 // Generate embeddings for semantic search
@@ -165,7 +166,7 @@ module.exports = cds.service.impl(async function () {
     // Action: Evaluate Project
     this.on('evaluateProject', Projects, async (req) => {
         const { ID } = req.params[0];
-        const { EvaluationGuidances, AttachmentEmbeddings: Embeddings } = cds.entities('BidAuctionService');
+        const { EvaluationGuidances } = cds.entities('BidAuctionService');
 
         try {
             // Step 1 – Validate: project must be 'E' and ALL auction attachments must also be embedded
@@ -205,47 +206,39 @@ module.exports = cds.service.impl(async function () {
                 return;
             }
 
-            // Fetch project-level embedding chunks once (biddingDocEmbed)
-            // Limit to top 3 chunks to stay within AI Core context window limits
-            const biddingDocEmbeds = await SELECT.from(Embeddings)
-                .columns('text_chunk')
-                .where({ project: ID, auction: null })
-                .limit(5);
-
-            if (biddingDocEmbeds.length === 0) {
-                req.error(400, 'No embeddings found for the project bidding document.');
-                return;
-            }
-
-            // Step 3 – Load ALL auction embeddings from DB before any AI calls
-            // This keeps DB access short and releases the connection before the long AI phase
-            const auctionEmbeds = {};
-            for (const auction of auctions) {
-                const bidDocEmbeds = await SELECT.from(Embeddings)
-                    .columns('text_chunk')
-                    .where({ auction: auction.ID })
-                    .limit(5);
-                if (bidDocEmbeds.length === 0) {
-                    console.warn(`No embeddings found for auction ${auction.ID}, skipping.`);
-                } else {
-                    auctionEmbeds[auction.ID] = bidDocEmbeds;
-                }
-            }
-            // DB reads are done — connection is released back to pool here
-
-            // Step 4 – Run all AI evaluations (no DB connection held during these calls)
+            // Step 3 – For each auction × guidance: embed criterion, semantic search, call LLM
             const results = [];
             for (const auction of auctions) {
-                const bidDocEmbeds = auctionEmbeds[auction.ID];
-                if (!bidDocEmbeds) continue;
-
                 for (const guidance of guidances) {
                     console.log(`Evaluating auction ${auction.ID} against guidance index ${guidance.index}`);
 
+                    // Step 3a: Embed the guidance criterion text
+                    const guidEmbedResults = await embeding([guidance.guidance]);
+                    const guidEmbedding = guidEmbedResults[0].embedding
+                        ? guidEmbedResults[0].embedding
+                        : guidEmbedResults[0];
+
+                    // Step 3b: Find most relevant project bidding doc chunks for this criterion
+                    const biddingDocEmbeds = await findSimilarChunks(
+                        { project: ID, auction: null },
+                        guidEmbedding
+                    );
+
+                    // Step 3c: Find most relevant supplier bid chunks for this criterion
+                    const bidDocEmbeds = await findSimilarChunks(
+                        { auction: auction.ID },
+                        guidEmbedding
+                    );
+
+                    if (bidDocEmbeds.length === 0) {
+                        console.warn(`No embeddings found for auction ${auction.ID}, skipping guidance ${guidance.index}.`);
+                        continue;
+                    }
+
                     const { score, fullscore, confidence, explanation } = await callLLM(
                         guidance.guidance,
-                        biddingDocEmbeds,   // project bidding document chunks
-                        bidDocEmbeds        // supplier bid document chunks
+                        biddingDocEmbeds,
+                        bidDocEmbeds
                     );
 
                     results.push({
@@ -254,14 +247,14 @@ module.exports = cds.service.impl(async function () {
                         evaluationGuidance_ID: guidance.ID,
                         auction_ID: auction.ID,
                         score: Math.min(5, Math.max(0, score)),
-                        fullscore: Math.min(5, Math.max(0, fullscore)),
+                        fullscore: Math.min(5, Math.max(0, fullscore ?? score)),
                         confidence: Math.min(1, Math.max(0, confidence)),
                         explanation
                     });
                 }
             }
 
-            // Step 5 – Write results in a single short DB transaction
+            // Step 4 – Write results in a single short DB transaction
             if (results.length > 0) {
                 await INSERT.into(EvaluationResults).entries(results);
             }

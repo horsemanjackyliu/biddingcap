@@ -1,6 +1,7 @@
 const { RecursiveCharacterTextSplitter } = require("langchain/text_splitter");
 const pdfParse = require('pdf-parse');
 const cds = require('@sap/cds');
+const { SELECT } = require('@sap/cds/lib/ql/cds-ql');
 const embeddingModel = 'text-embedding-3-large';
 
 
@@ -135,9 +136,7 @@ async function callLLM(guidance, biddingDocChunks, bidDocChunks) {
 
     const biddingContext = biddingDocChunks.map(c => c.text_chunk).join('\n---\n');
     const bidContext = bidDocChunks.map(c => c.text_chunk).join('\n---\n');
-
-    console.log('biddingContext:' + biddingContext);
-
+    // console.log('biddingContext:' + biddingContext);
     console.log('bidContext:' + bidContext);
 
     const client = new OrchestrationClient(
@@ -168,4 +167,48 @@ async function callLLM(guidance, biddingDocChunks, bidDocChunks) {
     }
 }
 
-module.exports = { embeding, getContent, callLLM };
+async function findSimilarChunks(filter, queryVector, topN = 5) {
+    const db = await cds.connect.to('db');
+    const embeddingStr = JSON.stringify(queryVector);
+    const AttachmentEmbeddingsDb = cds.entities('bidauction').AttachmentEmbeddings;
+    try {
+        const results = await db.run(
+            SELECT.from(AttachmentEmbeddingsDb)
+                .columns('text_chunk', 'embedding')
+                .where(filter)
+                .orderBy({
+                    xpr: [{
+                        func: 'cosine_similarity',
+                        args: [
+                            { ref: ['embedding'] },
+                            { func: 'to_real_vector', args: [{ val: embeddingStr }] }
+                        ]
+                    }],
+                    sort: 'desc'
+                })
+                .limit(topN)
+        );
+        return results.map(r => ({ text_chunk: r.text_chunk }));
+    } catch {
+        // SQLite fallback: fetch all rows and sort by JS cosine similarity
+        const all = await SELECT.from(AttachmentEmbeddingsDb)
+            .columns('text_chunk', 'embedding')
+            .where(filter);
+        const scored = all
+            .filter(r => r.embedding != null)
+            .map(r => {
+                const vec = JSON.parse(r.embedding);
+                let dot = 0, na = 0, nb = 0;
+                for (let i = 0; i < queryVector.length; i++) {
+                    dot += queryVector[i] * vec[i];
+                    na += queryVector[i] ** 2;
+                    nb += vec[i] ** 2;
+                }
+                return { text_chunk: r.text_chunk, score: dot / (Math.sqrt(na) * Math.sqrt(nb)) };
+            });
+        scored.sort((a, b) => b.score - a.score);
+        return scored.slice(0, topN).map(r => ({ text_chunk: r.text_chunk }));
+    }
+}
+
+module.exports = { embeding, getContent, callLLM, findSimilarChunks };
