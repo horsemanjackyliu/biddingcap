@@ -210,7 +210,7 @@ module.exports = cds.service.impl(async function () {
             const biddingDocEmbeds = await SELECT.from(Embeddings)
                 .columns('text_chunk')
                 .where({ project: ID, auction: null })
-                .limit(3);
+                .limit(5);
 
             if (biddingDocEmbeds.length === 0) {
                 req.error(400, 'No embeddings found for the project bidding document.');
@@ -224,7 +224,7 @@ module.exports = cds.service.impl(async function () {
                 const bidDocEmbeds = await SELECT.from(Embeddings)
                     .columns('text_chunk')
                     .where({ auction: auction.ID })
-                    .limit(3);
+                    .limit(5);
                 if (bidDocEmbeds.length === 0) {
                     console.warn(`No embeddings found for auction ${auction.ID}, skipping.`);
                 } else {
@@ -274,6 +274,14 @@ module.exports = cds.service.impl(async function () {
             console.error('Error evaluating project:', error);
             req.error(500, `Failed to evaluate project: ${error.message}`);
         }
+    });
+
+    this.on('closeProject', Projects, async (req) => {
+        const { ID } = req.params[0];
+        const project = await SELECT.one(Projects).where({ ID });
+        if (!project) return req.error(404, 'Project not found');
+        if (project.status !== 'V') return req.error(400, 'Only evaluated projects can be closed');
+        await UPDATE(Projects).set({ status: 'C' }).where({ ID });
     });
 
 });

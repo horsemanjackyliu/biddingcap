@@ -21,30 +21,6 @@ let array2VectorBuffer = (data) => {
 
 async function embeding(params) {
     const { OrchestrationEmbeddingClient, OrchestrationClient } = await import('@sap-ai-sdk/orchestration');
-    // const orchestrationClient = new OrchestrationClient({
-    //     promptTemplating: {
-    //         model: {
-    //             name: 'gpt-4o'
-    //         },
-    //         prompt: {
-    //             template: [
-    //                 { role: 'user', content: 'Answer the question: {{?question}}' }
-    //             ]
-    //         }
-    //     }
-    // });
-
-
-    // const response = await orchestrationClient.chatCompletion({
-    //     placeholderValues: {
-    //         question: 'Why is the phrase "Hello world!" so famous?'
-    //     }
-    // });
-
-
-    // console.log(response.getContent());
-
-    // const pdfDoc = await PDFDocument.create();
 
     const embeddingClient = new OrchestrationEmbeddingClient(
         {
@@ -154,52 +130,32 @@ async function getContent(attachmentID, attEntity, fileName, mimeType, projectID
 
 // Call BTP AI Core LLM to evaluate a supplier bid against a guidance criterion
 async function callLLM(guidance, biddingDocChunks, bidDocChunks) {
+
     const { OrchestrationClient } = await import('@sap-ai-sdk/orchestration');
 
     const biddingContext = biddingDocChunks.map(c => c.text_chunk).join('\n---\n');
     const bidContext = bidDocChunks.map(c => c.text_chunk).join('\n---\n');
 
-    const prompt = `你是一位专业的采购评估专家，精通中文商务和技术文件。以下所有内容均以中文撰写，请直接以中文进行分析，无需翻译。
+    console.log('biddingContext:' + biddingContext);
 
-## 评估标准 (Evaluation Criterion)
-${guidance}
+    console.log('bidContext:' + bidContext);
 
-## 招标文件 (Project Bidding Document - reference requirements)
-${biddingContext}
-
-## 投标文件 (Supplier Bid Document - to evaluate)
-${bidContext}
-
-## 评分规则
-
-1. ${guidance}会给出满分及评分规则。
-2. **逐档对照**：找到投标文件中与该评审因素对应的内容，与各评分档位的描述逐一比对后归档。
-3. **就高不就低**：若投标内容介于两档之间，参照评分标准措辞（如"基本满足"、"较好满足"）判断归档。
-4. **资质与业绩项**：对于涉及证书、合同金额、工程业绩等可验证项，若投标文件未提供对应材料或信息不完整，按评分标准中"不满足"条件处理。
-5. **置信度**：若投标文件对该因素表述模糊、内容缺失或关键章节空白，请相应降低置信度。
-
-
-- 提供置信度（0–1），若中文表述模糊、使用高度专业术语或关键章节缺失，请降低置信度。
-- 用中文撰写2–4句简洁说明，阐述评分理由，并引用投标文件中的关键中文原文作为佐证。
-- 满分 从${guidance}得到，如缺失，按100分算。
-- 仅输出以下格式的JSON对象，不得包含其他内容：
-{"score": <按该因素评分档位实际得分，数字>,“fullscore":<满分> "confidence": <0-1>, "explanation": "<text in Chinese>"}`;
-
-    const client = new OrchestrationClient({
-        promptTemplating: {
-            model: {
-                name: 'gpt-5',
-                params: { max_tokens: 16383 }
-            },
-            prompt: {
-                template: [{ role: 'user', content: prompt }]
-            }
-        }
-    },
+    const client = new OrchestrationClient(
+        {
+            scenario: 'foundation-models',
+            name: 'bidevaluationtemplate',
+            version: 'latest'
+        },
         { resourceGroup: 'default' },
         { destinationName: 'bid-aicore' });
 
-    const response = await client.chatCompletion();
+    const response = await client.chatCompletion({
+        placeholderValues: {
+            guidance,
+            biddingContext,
+            bidContext
+        }
+    });
     const content = response.getContent();
 
     try {
