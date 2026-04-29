@@ -189,7 +189,7 @@ async function callLLM(guidance, biddingDocChunks, bidDocChunks) {
     }
 }
 
-async function findSimilarChunks(filter, queryVector, topN = 5) {
+async function findSimilarChunks(filter, queryVector, topN = 10) {
     const db = await cds.connect.to('db');
     const embeddingStr = JSON.stringify(queryVector);
     const AttachmentEmbeddingsDb = cds.entities('bidauction').AttachmentEmbeddings;
