@@ -18,6 +18,8 @@ modules:
     parameters:
       buildpack: nodejs_buildpack
       instances: 1
+    env:
+      AI_RESOURCE_GROUP: default
     build-parameters:
       builder: npm
   - name: bidauction-db-deployer

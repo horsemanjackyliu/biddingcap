@@ -3,6 +3,7 @@ const pdfParse = require('pdf-parse');
 const cds = require('@sap/cds');
 const { SELECT } = require('@sap/cds/lib/ql/cds-ql');
 const embeddingModel = 'text-embedding-3-large';
+const aiResourceGroup = process.env.AI_RESOURCE_GROUP || 'default';
 
 
 // Helper method to convert embeddings to buffer for insertion
@@ -32,7 +33,7 @@ async function embeding(params) {
                 }
             }
         },
-        { resourceGroup: 'default' },
+        { resourceGroup: aiResourceGroup },
         { destinationName: 'bid-aicore' }
     );
     const response = await embeddingClient.embed({
@@ -145,7 +146,7 @@ async function callLLM(guidance, biddingDocChunks, bidDocChunks) {
             name: 'bidevaluationtemplate',
             version: 'latest'
         },
-        { resourceGroup: 'default' },
+        { resourceGroup: aiResourceGroup },
         { destinationName: 'bid-aicore' });
 
     const response = await client.chatCompletion({
