@@ -15,6 +15,9 @@ module.exports = cds.service.impl(async function () {
     // const { Projects, Auctions, EvaluationResults, Attachments } = this.entities;
 
     const { Projects, Auctions, EvaluationResults, Attachments, AttachmentEmbeddings } = cds.entities('BidAuctionService');
+    // Must insert/delete directly on the db entity so the embedding vector column is included
+    // (the service projection BidAuctionService.AttachmentEmbeddings excludes 'embedding')
+    const AttachmentEmbeddingsDb = cds.entities('bidauction').AttachmentEmbeddings;
 
     this.before('DELETE', Projects, async (req) => {
         const { ID } = req.params[0];
@@ -88,7 +91,7 @@ module.exports = cds.service.impl(async function () {
                     ID,                   // projectID
                     null                  // auctionID (not applicable for project attachments)
                 );
-                await INSERT.into(AttachmentEmbeddings).entries(chunks);
+                await INSERT.into(AttachmentEmbeddingsDb).entries(chunks);
                 console.log(`Embedded ${chunks.length} chunks for attachment: ${attachment.filename}`);
             }
 
@@ -138,7 +141,7 @@ module.exports = cds.service.impl(async function () {
 
     this.on('deleteEmbeding', Projects, async (req) => {
         const { ID } = req.params[0];
-        const { AttachmentEmbeddings } = cds.entities;
+        const AttachmentEmbeddings = AttachmentEmbeddingsDb;
         try {
             // Delete all embeddings associated with this project
             const deleteResult = await DELETE.from(AttachmentEmbeddings).where({ project: ID });

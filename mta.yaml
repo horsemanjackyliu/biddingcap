@@ -128,7 +128,7 @@ resources:
             - binding-secret
             - x509
         tenant-mode: dedicated
-        xsappname: bidauction-${org}-${space}
+        xsappname: bidauction-${space}
       path: ./xs-security.json
       service: xsuaa
       service-plan: application

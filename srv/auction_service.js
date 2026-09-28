@@ -19,6 +19,9 @@ module.exports = cds.service.impl(async function () {
     });
 
     const AttachmentEmbeddings = cds.entities['BidAuctionService.AttachmentEmbeddings'];
+    // Must insert directly on the db entity so the embedding vector column is included
+    // (the service projection BidAuctionService.AttachmentEmbeddings excludes 'embedding')
+    const AttachmentEmbeddingsDb = cds.entities('bidauction').AttachmentEmbeddings;
 
     this.before('DELETE', AuctionsAuc, async (req) => {
         const { ID } = req.params[0];
@@ -45,8 +48,7 @@ module.exports = cds.service.impl(async function () {
                     a.attachments(att => {
                         att.ID,
                             att.filename,
-                            att.mimeType,
-                            att.up__ID
+                            att.mimeType
                     });
             });
 
@@ -83,9 +85,9 @@ module.exports = cds.service.impl(async function () {
                     attachment.filename,
                     attachment.mimeType,
                     auction.project.ID,   // projectID from expanded association
-                    attachment.up__ID     // auctionID (up__ID is the parent Auction ID)
+                    ID                    // auctionID — use the known auction ID from req.params
                 );
-                await INSERT.into(AttachmentEmbeddings).entries(chunks);
+                await INSERT.into(AttachmentEmbeddingsDb).entries(chunks);
                 console.log(`Embedded ${chunks.length} chunks for attachment: ${attachment.filename}`);
             }
 
