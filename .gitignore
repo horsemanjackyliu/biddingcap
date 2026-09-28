@@ -9,6 +9,7 @@ gen/
 node_modules/
 target/
 .claude/
+.agents/
 .fiori-ai/
 .vscode/
 unpacked_cn/
@@ -28,6 +29,7 @@ CDS_repl.capnb
 
 # Web IDE, App Studio
 .che/
+
 
 
 

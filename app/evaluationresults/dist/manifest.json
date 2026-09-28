@@ -26,7 +26,19 @@
 				"type": "OData",
 				"settings": {
 					"annotations": [],
-					"odataVersion": "4.01"
+					"odataVersion": "4.0"
+				}
+			}
+		},
+		"crossNavigation": {
+			"inbounds": {
+				"evaluationresults-display": {
+					"semanticObject": "evaluationresults",
+					"action": "display",
+					"signature": {
+						"parameters": {},
+						"additionalParameters": "allowed"
+					}
 				}
 			}
 		}
