@@ -24,8 +24,13 @@ annotate service.EvaluationResults with @(
             },
             {
                 $Type : 'UI.DataField',
-                Label : 'score',
-                Value : score,
+                Label : 'score_low',
+                Value : score_low,
+            },
+            {
+                $Type : 'UI.DataField',
+                Label : 'score_high',
+                Value : score_high,
             },
             {
                 $Type : 'UI.DataField',
@@ -79,8 +84,13 @@ annotate service.EvaluationResults with @(
         },
         {
             $Type : 'UI.DataField',
-            Label : 'score',
-            Value : score,
+            Label : 'score_low',
+            Value : score_low,
+        },
+        {
+            $Type : 'UI.DataField',
+            Label : 'score_high',
+            Value : score_high,
         },
         {
             $Type : 'UI.DataField',

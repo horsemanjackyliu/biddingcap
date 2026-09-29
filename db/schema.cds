@@ -92,7 +92,8 @@ entity EvaluationResults : cuid {
     supplier           : String(10); // Business Partner ID
     evaluationGuidance : Association to EvaluationGuidances;
     auction            : Association to Auctions;
-    score              : Decimal(5, 2);
+    score_low          : Decimal(5, 2);
+    score_high         : Decimal(5, 2);
     fullscore          : Decimal(5, 2);
     confidence         : Decimal(5, 2);
     explanation        : LargeString;

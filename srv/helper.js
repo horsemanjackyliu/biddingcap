@@ -177,13 +177,15 @@ async function callLLM(guidance, biddingDocChunks, bidDocChunks) {
         }
         // Fallback: extract numeric fields via regex and treat rest as explanation
         // This handles unescaped quotes inside the explanation string
-        const score = repaired.match(/"score"\s*:\s*([0-9.]+)/)?.[1];
+        const score_low = repaired.match(/"score_low"\s*:\s*([0-9.]+)/)?.[1];
+        const score_high = repaired.match(/"score_high"\s*:\s*([0-9.]+)/)?.[1];
         const fullscore = repaired.match(/"fullscore"\s*:\s*([0-9.]+)/)?.[1];
         const confidence = repaired.match(/"confidence"\s*:\s*([0-9.]+)/)?.[1];
         const explanationMatch = repaired.match(/"explanation"\s*:\s*"([\s\S]*?)(?:"\s*\}|$)/);
-        if (score !== undefined && confidence !== undefined) {
+        if (score_low !== undefined && confidence !== undefined) {
             return {
-                score: parseFloat(score),
+                score_low: parseFloat(score_low),
+                score_high: score_high !== undefined ? parseFloat(score_high) : undefined,
                 fullscore: fullscore !== undefined ? parseFloat(fullscore) : undefined,
                 confidence: parseFloat(confidence),
                 explanation: explanationMatch?.[1] ?? ''

@@ -238,7 +238,7 @@ module.exports = cds.service.impl(async function () {
                         continue;
                     }
 
-                    const { score, fullscore, confidence, explanation } = await callLLM(
+                    const { score_low, score_high, fullscore, confidence, explanation } = await callLLM(
                         guidance.guidance,
                         biddingDocEmbeds,
                         bidDocEmbeds
@@ -249,8 +249,9 @@ module.exports = cds.service.impl(async function () {
                         supplier: auction.supplier_Supplier,
                         evaluationGuidance_ID: guidance.ID,
                         auction_ID: auction.ID,
-                        score: Math.min(5, Math.max(0, score)),
-                        fullscore: Math.min(5, Math.max(0, fullscore ?? score)),
+                        score_low: Math.min(5, Math.max(0, score_low)),
+                        score_high: Math.min(5, Math.max(0, score_high ?? score_low)),
+                        fullscore: Math.min(5, Math.max(0, fullscore ?? score_high ?? score_low)),
                         confidence: Math.min(1, Math.max(0, confidence)),
                         explanation
                     });
