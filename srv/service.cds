@@ -19,6 +19,7 @@ service BidAuctionService @(path: '/service/bidauction') {
                 endDate             @mandatory @(title: 'Project End Date'),
                 manager             @mandatory @(title: 'Project Manager'),
                 email               @mandatory @(title: 'Project Contact Email'),
+                templateId                     @(title: 'AI Prompt Template ID'),
                 attachments         @(title: 'Project Attachments'),
                 evaluationGuidances @(title: 'Evaluation Guidances'),
                 auctions            @(title: 'Auctions'),

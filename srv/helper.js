@@ -135,19 +135,18 @@ async function getContent(attachmentID, attEntity, fileName, mimeType, projectID
 
 
 // Call BTP AI Core LLM to evaluate a supplier bid against a guidance criterion
-async function callLLM(guidance, biddingDocChunks, bidDocChunks) {
+async function callLLM(guidance, biddingDocChunks, bidDocChunks, templateId) {
 
     const { OrchestrationClient } = await import('@sap-ai-sdk/orchestration');
 
     const biddingContext = biddingDocChunks.map(c => c.text_chunk).join('\n---\n');
     const bidContext = bidDocChunks.map(c => c.text_chunk).join('\n---\n');
-    // console.log('biddingContext:' + biddingContext);
     console.log('bidContext:' + bidContext);
 
     const client = new OrchestrationClient(
         {
             scenario: 'foundation-models',
-            name: bidPromptTemplate,
+            name: templateId || bidPromptTemplate,
             version: 'latest'
         },
         { resourceGroup: aiResourceGroup },

@@ -53,6 +53,7 @@ entity Projects : cuid, managed {
     endDate             : Date;
     manager             : String(100);
     email               : String(100) @assert.format: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$';
+    templateId          : String(200);
     attachments         : Composition of many Attachments;
     evaluationGuidances : Composition of many EvaluationGuidances
                               on evaluationGuidances.project = $self;

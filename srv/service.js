@@ -173,7 +173,7 @@ module.exports = cds.service.impl(async function () {
 
         // Step 1 – Validate synchronously before returning to the client
         const project = await SELECT.one.from(Projects, ID).columns(p => {
-            p.ID, p.status,
+            p.ID, p.status, p.templateId,
                 p.auctions(a => { a.ID, a.status, a.supplier_Supplier });
         });
 
@@ -238,7 +238,8 @@ module.exports = cds.service.impl(async function () {
                         const { score_low, score_high, fullscore, confidence, explanation } = await callLLM(
                             guidance.guidance,
                             biddingDocEmbeds,
-                            bidDocEmbeds
+                            bidDocEmbeds,
+                            project.templateId
                         );
 
                         results.push({

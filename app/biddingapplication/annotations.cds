@@ -48,6 +48,11 @@ annotate service.Projects with @(
                 $Type : 'UI.DataField',
                 Value : email,
             },
+            {
+                $Type : 'UI.DataField',
+                Value : templateId,
+                Label : 'AI Prompt Template ID',
+            },
         ],
     },
     UI.Facets : [
