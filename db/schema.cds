@@ -22,6 +22,8 @@ type ProjectStatus : String enum {
     EMBEDED = 'E';
     EVALUATED = 'V';
     CLOSED = 'C';
+    EVALUATING = 'P';
+    FAILED = 'F';
 };
 
 type AuctionStatus : String enum {

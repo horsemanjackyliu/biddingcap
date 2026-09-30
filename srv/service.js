@@ -37,7 +37,7 @@ module.exports = cds.service.impl(async function () {
             p.canActivateProject = p.status === 'O';
             p.canEmbedAttachments = p.status === 'A';
             p.canDeleteEmbeding = p.status === 'E';
-            p.canEvaluateProject = p.status === 'E';
+            p.canEvaluateProject = p.status === 'E' || p.status === 'F';
             p.canCloseProject = p.status === 'V';
         }
     });
@@ -171,106 +171,105 @@ module.exports = cds.service.impl(async function () {
         const { ID } = req.params[0];
         const { EvaluationGuidances } = cds.entities('BidAuctionService');
 
-        try {
-            // Step 1 – Validate: project must be 'E' and ALL auction attachments must also be embedded
-            const project = await SELECT.one.from(Projects, ID).columns(p => {
-                p.ID, p.status,
-                    p.auctions(a => { a.ID, a.status, a.supplier_Supplier });
-            });
+        // Step 1 – Validate synchronously before returning to the client
+        const project = await SELECT.one.from(Projects, ID).columns(p => {
+            p.ID, p.status,
+                p.auctions(a => { a.ID, a.status, a.supplier_Supplier });
+        });
 
-            if (!project) {
-                req.error(404, 'Project not found');
-                return;
-            }
-            if (project.status !== 'E') {
-                req.error(400, `Project must be in status 'E' (Embedded) to evaluate. Current status: '${project.status}'`);
-                return;
-            }
-
-            const auctions = project.auctions || [];
-            if (auctions.length === 0) {
-                req.error(400, 'No auctions found for this project. At least one supplier bid is required.');
-                return;
-            }
-
-            const notEmbedded = auctions.filter(a => a.status !== 'E');
-            if (notEmbedded.length > 0) {
-                req.error(400, `${notEmbedded.length} auction(s) have not been embedded yet. All supplier bids must be embedded before evaluation.`);
-                return;
-            }
-
-            // Step 2 – Get evaluation guidances for this project
-            const guidances = await SELECT.from(EvaluationGuidances)
-                .where({ project_ID: ID })
-                .orderBy('index');
-
-            if (guidances.length === 0) {
-                req.error(400, 'No evaluation guidances defined for this project.');
-                return;
-            }
-
-            // Step 3 – For each auction × guidance: embed criterion, semantic search, call LLM
-            const results = [];
-            for (const auction of auctions) {
-                for (const guidance of guidances) {
-                    console.log(`Evaluating auction ${auction.ID} against guidance index ${guidance.index}`);
-
-                    // Step 3a: Embed the guidance criterion text
-                    const guidEmbedResults = await embeding([guidance.guidance]);
-                    const guidEmbedding = guidEmbedResults[0].embedding
-                        ? guidEmbedResults[0].embedding
-                        : guidEmbedResults[0];
-
-                    // Step 3b: Find most relevant project bidding doc chunks for this criterion
-                    const biddingDocEmbeds = await findSimilarChunks(
-                        { project: ID, auction: null },
-                        guidEmbedding
-                    );
-
-                    // Step 3c: Find most relevant supplier bid chunks for this criterion
-                    const bidDocEmbeds = await findSimilarChunks(
-                        { auction: auction.ID },
-                        guidEmbedding
-                    );
-
-                    if (bidDocEmbeds.length === 0) {
-                        console.warn(`No embeddings found for auction ${auction.ID}, skipping guidance ${guidance.index}.`);
-                        continue;
-                    }
-
-                    const { score_low, score_high, fullscore, confidence, explanation } = await callLLM(
-                        guidance.guidance,
-                        biddingDocEmbeds,
-                        bidDocEmbeds
-                    );
-
-                    results.push({
-                        project_ID: ID,
-                        supplier: auction.supplier_Supplier,
-                        evaluationGuidance_ID: guidance.ID,
-                        auction_ID: auction.ID,
-                        score_low: Math.min(5, Math.max(0, score_low)),
-                        score_high: Math.min(5, Math.max(0, score_high ?? score_low)),
-                        fullscore: Math.min(5, Math.max(0, fullscore ?? score_high ?? score_low)),
-                        confidence: Math.min(1, Math.max(0, confidence)),
-                        explanation
-                    });
-                }
-            }
-
-            // Step 4 – Write results in a single short DB transaction
-            if (results.length > 0) {
-                await INSERT.into(EvaluationResults).entries(results);
-            }
-
-            // Advance project status to 'V' (Evaluated)
-            await UPDATE(Projects).set({ status: 'V' }).where({ ID });
-            console.log(`Project ${ID} evaluated — ${results.length} result(s) saved, status → V`);
-
-        } catch (error) {
-            console.error('Error evaluating project:', error);
-            req.error(500, `Failed to evaluate project: ${error.message}`);
+        if (!project) { req.error(404, 'Project not found'); return; }
+        if (project.status !== 'E' && project.status !== 'F') {
+            req.error(400, `Project must be in status 'E' (Embedded) or 'F' (Failed) to evaluate. Current status: '${project.status}'`);
+            return;
         }
+
+        const auctions = project.auctions || [];
+        if (auctions.length === 0) {
+            req.error(400, 'No auctions found for this project. At least one supplier bid is required.');
+            return;
+        }
+
+        const notEmbedded = auctions.filter(a => a.status !== 'E');
+        if (notEmbedded.length > 0) {
+            req.error(400, `${notEmbedded.length} auction(s) have not been embedded yet. All supplier bids must be embedded before evaluation.`);
+            return;
+        }
+
+        const guidances = await SELECT.from(EvaluationGuidances)
+            .where({ project_ID: ID })
+            .orderBy('index');
+
+        if (guidances.length === 0) {
+            req.error(400, 'No evaluation guidances defined for this project.');
+            return;
+        }
+
+        // Mark as evaluating in progress so UI shows the pending state
+        await UPDATE(Projects).set({ status: 'P' }).where({ ID });
+
+        // Fire the long-running evaluation in the background — do NOT await
+        setImmediate(async () => {
+            try {
+                const results = [];
+                for (const auction of auctions) {
+                    for (const guidance of guidances) {
+                        console.log(`Evaluating auction ${auction.ID} against guidance index ${guidance.index}`);
+
+                        const guidEmbedResults = await embeding([guidance.guidance]);
+                        const guidEmbedding = guidEmbedResults[0].embedding
+                            ? guidEmbedResults[0].embedding
+                            : guidEmbedResults[0];
+
+                        const biddingDocEmbeds = await findSimilarChunks(
+                            { project: ID, auction: null },
+                            guidEmbedding
+                        );
+
+                        const bidDocEmbeds = await findSimilarChunks(
+                            { auction: auction.ID },
+                            guidEmbedding
+                        );
+
+                        if (bidDocEmbeds.length === 0) {
+                            console.warn(`No embeddings found for auction ${auction.ID}, skipping guidance ${guidance.index}.`);
+                            continue;
+                        }
+
+                        const { score_low, score_high, fullscore, confidence, explanation } = await callLLM(
+                            guidance.guidance,
+                            biddingDocEmbeds,
+                            bidDocEmbeds
+                        );
+
+                        results.push({
+                            project_ID: ID,
+                            supplier: auction.supplier_Supplier,
+                            evaluationGuidance_ID: guidance.ID,
+                            auction_ID: auction.ID,
+                            score_low: Math.min(5, Math.max(0, score_low)),
+                            score_high: Math.min(5, Math.max(0, score_high ?? score_low)),
+                            fullscore: Math.min(5, Math.max(0, fullscore ?? score_high ?? score_low)),
+                            confidence: Math.min(1, Math.max(0, confidence)),
+                            explanation
+                        });
+                    }
+                }
+
+                if (results.length > 0) {
+                    await INSERT.into(EvaluationResults).entries(results);
+                }
+
+                await UPDATE(Projects).set({ status: 'V' }).where({ ID });
+                console.log(`Project ${ID} evaluated — ${results.length} result(s) saved, status → V`);
+
+            } catch (error) {
+                console.error(`Background evaluation failed for project ${ID}:`, error);
+                await UPDATE(Projects).set({ status: 'F' }).where({ ID });
+            }
+        });
+
+        // Return immediately — evaluation runs in background
+        return { message: 'Evaluation started. Refresh the page to check progress.' };
     });
 
     this.on('closeProject', Projects, async (req) => {
